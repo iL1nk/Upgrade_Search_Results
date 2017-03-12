@@ -1,0 +1,448 @@
+<style>
+.ba_clear {
+	clear: both;
+}
+
+.non_selectable {
+	-webkit-user-select: none;  /* Chrome all / Safari all */
+	-moz-user-select: none;     /* Firefox all */
+	-ms-user-select: none;      /* IE 10+ */
+	user-select: none;  
+}
+
+.ba_new_table .new_table_wrapper {
+	background-color: #0444A6;
+	border-radius: 5px;
+	color: #FFFFFF;
+	font-family: Verdana;
+	padding: 17px 14px 17px 17px;
+	position: absolute;
+	top: 514px;
+	left: 956px;
+	width: 450px;
+}
+
+.ba_new_table .new_table_wrapper::before{
+	border-bottom: 15px solid #0444A6;
+	border-left: 13px solid transparent;
+	border-right: 13px solid transparent;
+	content: ' ';
+	position: absolute;
+	top: -15px;
+	left: 150px;
+}
+
+.new_table_wrapper .ba_header_text {
+	float: left;
+	width: 350px;
+}
+
+.new_table_wrapper .ba_header h3 {
+	color: #FFFFFF;
+	font-size: 18px;
+    padding: 0px 0px 10px 0px
+}
+
+.new_table_wrapper .ba_header h4 {
+	color: #FFFFFF;
+	font-size: 16px;
+	padding: 8px 0 10px;
+}
+
+.new_table_wrapper .ba_header .ba_cross {
+	background-image: url('#$(ContentManager:closing-cross.png)!');
+	background-repeat: no-repeat;
+	background-size: auto 100%;
+	cursor: pointer;
+	float: right;
+	height: 17px;
+	width: 18px;
+}
+
+.new_table_wrapper .ba_list_wrapper {
+	width: 280px;
+	display: inline-block;
+}
+
+.new_table_wrapper .ba_a3_picture {
+	background-image: url('#$(ContentManager:a3_picture.png)!');
+	background-repeat: no-repeat;
+	background-size: auto 100%;
+	border: 3px solid #FFF;
+	float: right;
+	width: 152px;
+	height: 117px;
+}
+
+.new_table_wrapper ul.ba_list {
+	font-size: 14px;
+	list-style-type: disc;
+	padding-left: 15px;
+}
+
+.new_table_wrapper ul.ba_list li {
+	padding-bottom: 10px;
+}
+
+.ba_buttons {
+	padding-top: 25px;
+}
+
+.new_table_wrapper .ba_buttons .ba_nothanks {
+	float: left;
+	font-size: 14px;
+	font-weight: bold;
+	text-decoration: underline;
+	margin-top: 15px;
+	cursor: pointer;
+}
+
+.new_table_wrapper .ba_buttons .ba_upgrade {
+	float: right;
+	font-size: 18px;
+	border: 1px solid #FFFFFF;
+	background-color: #3379D1;
+	background-image: -webkit-linear-gradient(#4492FE, #3379D1);
+	background-image: linear-gradient(#4492FE, #3379D1);
+	border-radius: 5px;
+	text-align: center;
+	padding: 7px 11px;
+	width: 123px;
+	cursor: pointer;
+}
+
+#ba_currency, 
+#ba_amount,
+.ba_new_table_plus {
+	font-size: 24px;
+	font-weight: inherit;
+}
+</style>
+<div class="new_table_wrapper" style="display: none;">
+	<div class="ba_header">
+		<div class="ba_header_text">
+			<h3>Upgrade to World Traveller Plus for <span id="ba_currency"></span><span id="ba_amount"></span>&nbsp;
+				<span id="ba_currency_end"></span>
+			</h3>
+          
+		</div>		
+		<div class="ba_cross"></div>
+		<div class="ba_clear"></div>
+	</div>
+	<div class="ba_list_wrapper">
+		<ul class="ba_list">
+			<li>Wider seat with extra legroom and baggage allowance</li>
+			<li>Delicious meals and extensive bar menu</li>
+			<li>Quieter cabin with exclusive service</li>
+		</ul>
+	</div>
+	<div class="ba_a3_picture"></div>
+	<div class="ba_clear"></div>
+	<div class="ba_buttons">
+		<div class="ba_nothanks">No thanks</div>
+		<div class="ba_upgrade non_selectable">Upgrade</div>
+		<div class="ba_clear"></div>
+	</div>
+</div>
+<script> 
+;
+(function() {
+	'use strict';
+
+	dom.addCss(css);
+
+	$('body').addClass('ba_new_table');
+	$('body').append(html);
+
+
+	var $wrapper = $('.new_table_wrapper');
+	var lightboxOppenning = false;
+
+	// clear content usage data
+	sessionData.clearData('tableIdClicked');
+	userData.clearData('new_table_wrapper_closed_inbound');
+	userData.clearData('new_table_wrapper_closed_outbound');
+
+	var extractPrices = function(a) {
+		var b = [];
+		a.replace(/(\d{1,3}(?:\D?\d{3})*(?:\D(\d{0,2})|))(?:\D|$)/gm, function(c, a, d) {
+			c = !d ? "00" : d.length == 1 ? "0" : "";
+			b.push(
+				(a.replace(/\D/g, "") + c) * 1)
+		});
+		return b
+	};
+
+	//images preload
+	function preload(images) {
+		if (typeof document.body == "undefined") return;
+		try {
+			var div = document.createElement("div");
+			var s = div.style;
+			s.position = "absolute";
+			s.top = s.left = 0;
+			s.width = "1px";
+			s.visibility = "hidden";
+			document.body.appendChild(div);
+			div.innerHTML = "<img style=\"width: 100%;\" src=\"" + images.join("\" /><img style=\"width: 100%;\" src=\"") + "\" />";
+		} catch (e) {
+			// Error. Do nothing.
+		}
+	}
+
+	function onRadioButtonClick(that) {
+		var premiumInputEl,
+			elPosition,
+			wrapperTop,
+			wrapperLeft,
+			isOperatorBA,
+			isPremiumEcoFlight,
+			tableIdentificator,
+			isLightboxOutbClosed,
+			isLightboxInbClosed,
+			isLightBoxClosed = false,
+			priceDifference;
+
+		// get next input element
+		premiumInputEl = $(that).closest('tr.compact').find('.priceSelection input[aria-label^="PremiumEconomy"]');
+		// check if flight operator is BA
+		isOperatorBA = $(that).closest('tr').find('.operator .connectingFlightContainer').hasClass('BA');
+		// check is there Premium Economy Flight presented on the page
+		isPremiumEcoFlight = premiumInputEl.length !== 0;
+
+		// if lightbox was closed before
+		isLightboxOutbClosed = userData.getData('new_table_wrapper_closed_outbound') || 0;
+		isLightboxInbClosed  = userData.getData('new_table_wrapper_closed_inbound') || 0;
+
+		// get the price difference
+		priceDifference = calculatePrice(that);
+
+		// set the table type to define on which table user closed the lightbox
+		tableIdentificator = $(that).closest('.connectFlights').closest('tbody').attr('id') || 0;
+		
+		if (isLightboxInbClosed && isLightboxOutbClosed) {
+			isLightBoxClosed = true;
+		} else if (isLightboxOutbClosed) {
+			if (isLightboxOutbClosed === tableIdentificator) {
+				isLightBoxClosed = true;
+			}
+		} else if (isLightboxInbClosed) {
+			if (isLightboxInbClosed === tableIdentificator) {
+				isLightBoxClosed = true;
+			}
+		}
+
+		if (isOperatorBA && isPremiumEcoFlight && priceDifference && !isLightBoxClosed) {
+
+			// remove promoted class from previous selected element
+			$('.ba_promo').removeClass('ba_promo');
+
+			// add special id to premiumEconomy input
+			premiumInputEl.addClass('ba_promo');
+
+			// get premium radio button position
+			elPosition = premiumInputEl.offset();
+			// calculate position for wrapper
+			wrapperTop = elPosition.top + 32;
+			wrapperLeft = elPosition.left - 157;
+			// move wrapper to new position - under the premiumEconomy clicked
+			$wrapper.css('top', wrapperTop).css('left', wrapperLeft);
+
+			// set the table type to define on which table user closed the lightbox
+			tableIdentificator = $(that).closest('.connectFlights').closest('tbody').attr('id') || 0;
+			if (tableIdentificator.length) {
+				sessionData.setData('tableIdClicked', tableIdentificator);
+			}
+
+			// set price difference into the html
+			$('#ba_amount').text(priceDifference);
+
+			$wrapper.addClass('ba_show');
+			$wrapper.fadeIn(500);
+
+			lightboxOppenning = true;
+
+			setTimeout(function() {
+				lightboxOppenning = false;
+			}, 300);
+
+		} else {
+			$wrapper.fadeOut();
+		}
+	}
+
+	function lightboxClose() {
+		$wrapper.fadeOut(750);
+		$wrapper.removeClass('ba_show');
+
+		// get element user clicks before
+		var tableIdentificator = sessionData.getData('tableIdClicked');
+		// set cookie if we don't show lightbox for tables Inbound and Outbound
+		if (tableIdentificator === 'inboundDates') {
+			userData.setData('new_table_wrapper_closed_inbound', tableIdentificator);
+		} else if (tableIdentificator === 'outboundDates') {
+			userData.setData('new_table_wrapper_closed_outbound', tableIdentificator);
+		}
+	}
+
+	function getCurrency() {
+		var str, 
+			currency;
+		str = $('#baSelectedOut.baSelected span.price').text();
+		currency = str.match(/[^\d+(\.?)(\s?)(\,?)]+/)[0];
+
+		return currency;
+	}
+
+	function setCurrency(currency) {
+		if (currency && currency.length === 1) {
+			$('#ba_currency').text(currency);
+		} else if (currency && currency.length > 1) {
+			$('#ba_currency_end').text(currency);
+		} else {
+			return;
+		}
+	}
+
+	function calculatePrice(that) {
+		var economyPriceString,
+			economyPrice,
+			premiumEcoString,
+			premiumEcoPrice,
+			priceDifference,
+			pricePart,
+			isPremiumInput;
+
+		economyPriceString = $(that).find('.priceSelection label').text();
+		economyPrice = extractPrices(economyPriceString)[0];
+
+		isPremiumInput = $(that).closest('.connectingFlights').find('input[aria-label^="PremiumEconomy"] + span + label').length > 0;
+
+		if (isPremiumInput) {
+			premiumEcoString = $(that).closest('.connectingFlights').find('input[aria-label^="PremiumEconomy"] + span + label').text();
+			premiumEcoPrice = extractPrices(premiumEcoString)[0];
+
+			priceDifference = premiumEcoPrice - economyPrice;
+			pricePart = priceDifference / economyPrice * 100;
+
+			if (pricePart < 0 || pricePart >= 100) {
+				return false;
+			} else {
+				return priceDifference / 100;
+			}
+		} else {
+			// if user clicks on input without posibility to show lightbox then just hide current light box
+			$wrapper.fadeOut(750);
+
+			return false;
+		}
+	}
+
+	events.domReady(function() {
+
+		// add currency symbols to lightbox
+		setCurrency(getCurrency());
+
+		// close the lightbox
+		// hide lightbox wrapper with fading effects
+		$('.ba_buttons .ba_nothanks, .ba_header .ba_cross').click(function() {
+			lightboxClose();
+		});
+
+		// additional links which have stop propagation event 
+		$('a.tertiaryLink, a.flightPopUp, a.toggleDetails').click(function() {
+			$wrapper.fadeOut(750);
+		});
+		
+		// close lightbox if user clicks on inputs (not Economy)
+		var tableOutInputs = $('.flightList.directFlightsTable #outboundDates .priceSelection input:not([aria-label^="Economy"])');
+		tableOutInputs.click(function () {
+			$wrapper.fadeOut(750);
+		});
+
+		// close Lightbox on connect flight inputs click
+		var connectOutboundInputs = $('.flightList.connectFlightsTable #outboundDates .priceSelection input');
+		connectOutboundInputs.click(function() {
+			$wrapper.fadeOut(750);
+		});
+
+		// close the lightbox if user clicks outside the box
+		$(document).bind('click', function(event) {
+			var isClickOutsideBox,
+				isWaitLoaderShown;
+
+			isClickOutsideBox = $(event.target).closest('.new_table_wrapper').length || true;
+			isWaitLoaderShown = $('.ui-dialog.ui-widget.ui-widget-content.ui-corner-all.ffsUpdateMessage').is(':visible');
+
+			if (isClickOutsideBox === true && !lightboxOppenning && !isWaitLoaderShown) {
+				$wrapper.fadeOut(750);
+			}
+		});
+
+		// open lightbox
+		// adding click event for inbound flights
+		// get Economy input wrapper elements
+		var economyButtons = $('.flightList.directFlightsTable #inboundDates .priceSelection input[aria-label^="Economy"]').closest('.priceSelectionContainer').addClass('ba_radio_click');
+		economyButtons.click(function() {
+			onRadioButtonClick(this);
+		});
+
+		// adding click event for outboundDate table
+		var economyInputs = $('.flightList.directFlightsTable #outboundDates .priceSelection input[aria-label^="Economy"]');
+		economyInputs.click(function() {
+			var inputWrapper = $(this).closest('.priceSelectionContainer');
+			onRadioButtonClick(inputWrapper);
+		});
+
+		// Upgrade button click
+		$('.ba_buttons .ba_upgrade').click(function () {
+			$('.ba_promo').click();
+			$('.ba_promo').removeClass('ba_promo');
+			$wrapper.fadeOut(750);
+		});
+
+		// second table elements loses their events on choosing flights from first table
+		$(document).ajaxComplete(function(event, XMLHttpRequest, ajaxOptions) {
+			if (XMLHttpRequest.readyState === 4 && XMLHttpRequest.status === 200) {
+				if (ajaxOptions.url.indexOf('/travel/FX/public?') > -1) {
+
+					var newEconomyButtons = $('.flightList.directFlightsTable #inboundDates .priceSelection input[aria-label^="Economy"]')
+											.closest('.priceSelectionContainer:not(.ba_radio_click)');
+					newEconomyButtons.click(function() {
+						onRadioButtonClick(this);
+					});
+
+					// add class to check if there is the event attached
+					newEconomyButtons.addClass('ba_radio_click');
+
+					// additional links which have stop propagation event
+					// #inBoundFlightListv table
+					$('#inBoundFlightList a.tertiaryLink,#inBoundFlightList a.flightPopUp,#inBoundFlightList a.toggleDetails').click(function() {
+						$wrapper.fadeOut(750);
+					});
+				}
+			}
+		});
+
+		// change wrapper position on window resize
+		$(window).resize(function () {
+			var premiumInputEl,
+				newPositionLeft;
+			premiumInputEl = $('.priceSelection input[aria-label^="PremiumEconomy"]');
+
+			if (premiumInputEl.length) {
+				newPositionLeft = premiumInputEl.offset().left;
+				newPositionLeft = newPositionLeft - 157;
+
+				$wrapper.css('left', newPositionLeft);
+			}
+		});
+
+		preload([
+			"#$(ContentManager:closing-cross.png)!",
+			"#$(ContentManager:a3_picture.png)!"
+		]);
+	});
+
+})();
+</script>
